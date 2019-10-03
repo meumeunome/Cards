@@ -14,7 +14,7 @@ import java.util.ArrayList;
         "full_art", "textless", "booster", "story_spotlight", "edhrec_rank", "prices",
         "related_uris", "purchase_uris", "mtgo_foil_id", "watermark", "preview", "power",
         "toughness", "all_parts", "frame_effects", "promo_types", "printed_name", "card_faces",
-        "loyalty"})
+        "loyalty", "next_page"})
 public class Carta {
 
     private String name;

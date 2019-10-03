@@ -97,12 +97,12 @@ public class FormCardActivity extends AppCompatActivity {
                 }
                 setSpinnerIsPopulated = false;
 
-                if(count < 3){
+                if(s.length() < 3){
                     previousCardNameRequestSize = 0;
                     return;
                 }
 
-                Log.d("HMM", "onTextChanged: " + before + " " + s.length() + " " + previousCardNameRequestSize);
+                Log.d("HMM", "onTextChanged: " + start + " " + before + " " + s.length() + " " + previousCardNameRequestSize);
 
                 if(previousCardNameRequestSize == 0 || s.length() < previousCardNameRequestSize) {
                     if(cartasRecommendedNameCall != null)
