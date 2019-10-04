@@ -34,12 +34,13 @@ public class FormCardActivity extends AppCompatActivity {
     private AutoCompleteTextView name;
     private Spinner set;
     private String selectedSet;
-    private EditText condition;
+    private Spinner condition;
+    private String selectedCondition;
     private EditText comment;
     private EditText quantity;
     private Button saveButton;
 
-    ArrayList<String> spinnerArray;
+    ArrayList<String> setSpinnerArray;
     ArrayList<String> recommendedNameArray;
     private boolean setSpinnerIsPopulated;
 
@@ -58,28 +59,37 @@ public class FormCardActivity extends AppCompatActivity {
 
         configureSaveButton();
         configureSelectSetDropdown();
+        configureConditionSpinner();
         configureNameText();
     }
 
-    private void populateRecommendedText(String text) {
-        ArrayAdapter<String> adapter;
-        if(text == null)
-             adapter = new ArrayAdapter<>(this,
-                     android.R.layout.simple_dropdown_item_1line,
-                     recommendedNameArray);
-        else {
-            adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_dropdown_item_1line);
+    private void configureConditionSpinner() {
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.conditionOptions, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        condition.setAdapter(adapter);
 
-            for(String aux : recommendedNameArray){
-                if(aux.contains(text)) {
-                    adapter.add(aux);
-                    Log.d("HMM", aux + " contains: " + text);
-                }else Log.d("HMM", aux + " DOES NOT contains: " + text);
+        condition.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(position == 0)
+                    selectedCondition = "";
+                else
+                    selectedCondition = parent.getItemAtPosition(position).toString();
             }
-        }
-        adapter.setNotifyOnChange(true);
 
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                //do nothing
+            }
+        });
+    }
+
+    private void populateRecommendedText() {
+        ArrayAdapter<String> adapter;
+        adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line,
+                recommendedNameArray);
         name.setAdapter(adapter);
     }
 
@@ -91,13 +101,15 @@ public class FormCardActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if(!spinnerArray.isEmpty()){
-                    spinnerArray.clear();
+                if(!setSpinnerArray.isEmpty()){
+                    setSpinnerArray.clear();
                     populateSpinner();
                 }
                 setSpinnerIsPopulated = false;
 
                 if(s.length() < 3){
+                    if(cartasRecommendedNameCall != null)
+                        cartasRecommendedNameCall.cancel();
                     previousCardNameRequestSize = 0;
                     return;
                 }
@@ -127,28 +139,51 @@ public class FormCardActivity extends AppCompatActivity {
     }
 
     private void makeNomeCartasRequest(CharSequence s) {
+        Toast.makeText(FormCardActivity.this,
+                "Searching...",
+                Toast.LENGTH_SHORT).show();
         cartasRecommendedNameCall = new RetrofitConfig().getScryfallService().buscarCarta(s.toString());
         cartasRecommendedNameCall.enqueue(new Callback<CartasResponse>() {
             @Override
             public void onResponse(Call<CartasResponse> call, Response<CartasResponse> response) {
                 recommendedNameArray.clear();
                 CartasResponse cartas = response.body();
+
                 int code = response.code();
                 if(code == 200){
                     for(Carta aux : cartas.getData()){
                         recommendedNameArray.add(aux.getName());
                     }
+
+                    if(cartas.hasNext_page()){
+                        Toast.makeText(FormCardActivity.this,
+                                "Query response is too long, type more to reduce the response",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        previousCardNameRequestSize = name.getText().length();
+                    }
+
+                } else{
+                    Toast.makeText(FormCardActivity.this,
+                            "No cards found",
+                            Toast.LENGTH_SHORT).show();
                 }
-                populateRecommendedText(null);
-                previousCardNameRequestSize = name.getText().length();
+
+
+                populateRecommendedText();
                 name.showDropDown();
             }
 
             @Override
             public void onFailure(Call<CartasResponse> call, Throwable t) {
                 recommendedNameArray.clear();
-                populateRecommendedText(null);
-                Log.d("HMM", "OIEEEEE: " + t.getMessage());
+                populateRecommendedText();
+                Log.d("HMM", "What happened: " + t.getMessage() + " / " + t.getLocalizedMessage());
+                if(t.getMessage().compareTo("timeout") == 0){
+                    Toast.makeText(FormCardActivity.this,
+                            "Timeout\nTry typing more things or retyping",
+                            Toast.LENGTH_SHORT).show();
+                }
                 //do nothing
             }
         });
@@ -178,12 +213,12 @@ public class FormCardActivity extends AppCompatActivity {
                         Toast.makeText(FormCardActivity.this,
                                 "Nenhuma carta especificada!",
                                 Toast.LENGTH_SHORT).show();
-                        spinnerArray.clear();
+                        setSpinnerArray.clear();
                         populateSpinner();
                         return true;
                     }
 
-                    spinnerArray.clear();
+                    setSpinnerArray.clear();
                     populateSpinner();
                     makeCartasTodosOsSetsRequest();
                 }
@@ -221,7 +256,7 @@ public class FormCardActivity extends AppCompatActivity {
                 int code = response.code();
                 if (code == 200) {
                     for(Carta aux : cartas.getData()){
-                        spinnerArray.add(aux.getSet_name());
+                        setSpinnerArray.add(aux.getSet_name());
                     }
                 } else {
                     Toast.makeText(FormCardActivity.this,
@@ -259,10 +294,20 @@ public class FormCardActivity extends AppCompatActivity {
     }
 
     private void populateSpinner() {
-        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>
-                (this,
-                        android.R.layout.simple_spinner_item,
-                        spinnerArray);
+        ArrayList<String> hint;
+        ArrayAdapter<String> spinnerArrayAdapter;
+        if(setSpinnerArray.isEmpty()) {
+            hint = new ArrayList<>();
+            hint.add("Select set...");
+            spinnerArrayAdapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_dropdown_item_1line,
+                    hint);
+        } else {
+            spinnerArrayAdapter = new ArrayAdapter<>
+                    (this,
+                            android.R.layout.simple_spinner_item,
+                            setSpinnerArray);
+        }
         spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         set.setAdapter(spinnerArrayAdapter);
     }
@@ -272,7 +317,7 @@ public class FormCardActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Toast.makeText(FormCardActivity.this,
-                        name.getText() + " - " + selectedSet + " - " + condition.getText() + " - " + comment.getText() + " - " + quantity.getText(),
+                        name.getText() + " - " + selectedSet + " - " + selectedCondition + " - " + comment.getText() + " - " + quantity.getText(),
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -287,8 +332,9 @@ public class FormCardActivity extends AppCompatActivity {
 
         saveButton = findViewById(R.id.activity_form_card_save_button);
 
-        spinnerArray = new ArrayList<>();
+        setSpinnerArray = new ArrayList<>();
         setSpinnerIsPopulated = false;
+        populateSpinner();
 
         recommendedNameArray = new ArrayList<>();
         previousCardNameRequestSize = 0;

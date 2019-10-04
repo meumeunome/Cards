@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:hint="Card Name"
+            android:hint="@string/card_nameHint"
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:completionThreshold="3" />
@@ -31,19 +31,20 @@
             android:drawSelectorOnTop="true"
             android:spinnerMode="dropdown" />
 
-        <EditText
+        <Spinner
             android:id="@+id/activity_form_card_condition"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:hint="Condition"/>
+            android:drawSelectorOnTop="true"
+            android:spinnerMode="dropdown" />
 
         <EditText
             android:id="@+id/activity_form_card_comment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:hint="Comment"/>
+            android:hint="@string/commentHint"/>
 
         <EditText
             android:id="@+id/activity_form_card_quantity"
@@ -51,12 +52,12 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:inputType="number"
-            android:hint="Quantity"/>
+            android:hint="@string/quantityHint"/>
 
         <Button android:id="@+id/activity_form_card_save_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save"
+            android:text="@string/saveButtonText"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp" />
 

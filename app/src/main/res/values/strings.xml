@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">Cards</string>
+    <string name="conditionHint">Condition</string>
+    <string name="commentHint">Comment</string>
+    <string name="quantityHint">Quantity</string>
+    <string name="saveButtonText">Save</string>
+    <string name="card_nameHint">Card Name</string>
+
+    <string-array name="conditionOptions">
+        <item>Select condition...</item>
+        <item>Near Mint (NM)</item>
+        <item>Slightly Played (SP)</item>
+        <item>Moderately Playerd (MP)</item>
+        <item>Heavily Played (HP)</item>
+        <item>Damage (DM)</item>
+    </string-array>
 </resources>
