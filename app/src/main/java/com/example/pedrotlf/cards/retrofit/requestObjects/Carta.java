@@ -4,29 +4,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.ArrayList;
 
-@JsonIgnoreProperties({"object", "id", "oracle_id", "mtgo_id", "arena_id",
-        "tcgplayer_id", "lang", "released_at", "uri", "scryfall_uri", "layout", "highres_image",
-        "image_uris", "mana_cost", "cmc", "type_line", "oracle_text", "colors", "color_identity",
-        "legalities", "games", "reserved", "foil", "nonfoil", "oversized", "promo", "reprint",
-        "variation", "set", "set_type", "set_uri", "set_search_uri", "scryfall_set_uri",
-        "rulings_uri", "prints_search_uri", "collector_number", "digital", "rarity", "flavor_text",
-        "card_back_id", "artist", "artist_ids", "illustration_id", "border_color", "frame",
-        "full_art", "textless", "booster", "story_spotlight", "edhrec_rank", "prices",
-        "related_uris", "purchase_uris", "mtgo_foil_id", "watermark", "preview", "power",
-        "toughness", "all_parts", "frame_effects", "promo_types", "printed_name", "card_faces",
-        "loyalty", "next_page"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Carta {
 
     private String name;
     private String set_name;
+    private String lang;
+    private ImageURIS image_uris;
     private ArrayList<Integer> multiverse_ids = new ArrayList<>();
 
     public String getSet_name() {
-        return set_name;
+        if(this.lang.equals("ja"))
+            return set_name + " (Japanese)";
+        else
+            return set_name;
     }
-    public void setSet_name(String set_name) {
-        this.set_name = set_name;
-    }
+    public void setSet_name(String set_name) { this.set_name = set_name; }
 
     public String getName() {
         return name;
@@ -34,6 +27,12 @@ public class Carta {
     public void setName(String name) {
         this.name = name;
     }
+
+    public String getLang() { return lang; }
+    public void setLang(String lang) { this.lang = lang; }
+
+    public String getImage_uris() { return image_uris.toString(); }
+    public void setImage_uris(ImageURIS image_uris) { this.image_uris = image_uris; }
 
     public int getMultiverse_id() { return this.multiverse_ids.get(0); }
     public void setMultiverse_ids(ArrayList<Integer> multiverse_ids) { this.multiverse_ids = multiverse_ids; }

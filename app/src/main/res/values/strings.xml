@@ -8,6 +8,7 @@
 
     <string-array name="conditionOptions">
         <item>Select condition...</item>
+        <item>Mint (M)</item>
         <item>Near Mint (NM)</item>
         <item>Slightly Played (SP)</item>
         <item>Moderately Playerd (MP)</item>

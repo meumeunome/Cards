@@ -1,6 +1,7 @@
 package com.example.pedrotlf.cards.ui;
 
 import android.app.ProgressDialog;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -15,9 +16,11 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.pedrotlf.cards.R;
 import com.example.pedrotlf.cards.retrofit.RetrofitConfig;
 import com.example.pedrotlf.cards.retrofit.requestObjects.Carta;
@@ -32,6 +35,7 @@ import retrofit2.Response;
 public class FormCardActivity extends AppCompatActivity {
 
     private AutoCompleteTextView name;
+    private ImageView image;
     private Spinner set;
     private String selectedSet;
     private Spinner condition;
@@ -42,6 +46,7 @@ public class FormCardActivity extends AppCompatActivity {
 
     ArrayList<String> setSpinnerArray;
     ArrayList<String> recommendedNameArray;
+    ArrayList<Carta> cartasList;
     private boolean setSpinnerIsPopulated;
 
     private Call cartasRecommendedNameCall;
@@ -136,6 +141,23 @@ public class FormCardActivity extends AppCompatActivity {
                 }
             }
         });
+
+        name.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String uri = "";
+                for(Carta aux : cartasList){
+                    if(aux.getName() == parent.getItemAtPosition(position))
+                        uri = aux.getImage_uris();
+                }
+                loadImage(uri);
+            }
+        });
+
+    }
+
+    private void loadImage(String uri) {
+        Glide.with(this).load(uri).into(image);
     }
 
     private void makeNomeCartasRequest(CharSequence s) {
@@ -147,11 +169,13 @@ public class FormCardActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<CartasResponse> call, Response<CartasResponse> response) {
                 recommendedNameArray.clear();
+                cartasList.clear();
                 CartasResponse cartas = response.body();
 
                 int code = response.code();
                 if(code == 200){
                     for(Carta aux : cartas.getData()){
+                        cartasList.add(aux);
                         recommendedNameArray.add(aux.getName());
                     }
 
@@ -325,6 +349,7 @@ public class FormCardActivity extends AppCompatActivity {
 
     private void inicializar() {
         name = findViewById(R.id.activity_form_card_name);
+        image = findViewById(R.id.activity_form_card_image);
         set = findViewById(R.id.activity_form_card_set);
         condition = findViewById(R.id.activity_form_card_condition);
         comment = findViewById(R.id.activity_form_card_comment);
@@ -337,6 +362,7 @@ public class FormCardActivity extends AppCompatActivity {
         populateSpinner();
 
         recommendedNameArray = new ArrayList<>();
+        cartasList = new ArrayList<>();
         previousCardNameRequestSize = 0;
 
     }
