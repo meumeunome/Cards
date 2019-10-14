@@ -3,7 +3,7 @@ Android App // Scryfall API
 
 ONLY SOME FEW CARD FORM FUNCTIONALITIES MADE
 
-Testing Scryfall API usage.(https://scryfall.com/docs/api/)
+Testing Scryfall API usage. (https://scryfall.com/docs/api/)
 
 Requests made using Retrofit. (https://square.github.io/retrofit/)
 
