@@ -1,7 +1,7 @@
 package com.example.pedrotlf.cards.ui;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -27,6 +27,8 @@ import com.example.pedrotlf.cards.retrofit.requestObjects.Carta;
 import com.example.pedrotlf.cards.retrofit.requestObjects.CartasResponse;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -49,7 +51,7 @@ public class FormCardActivity extends AppCompatActivity {
     ArrayList<Carta> cartasList;
     private boolean setSpinnerIsPopulated;
 
-    private Call cartasRecommendedNameCall;
+    private Call<CartasResponse> cartasRecommendedNameCall;
     private int previousCardNameRequestSize;
 
 
@@ -69,7 +71,7 @@ public class FormCardActivity extends AppCompatActivity {
     }
 
     private void configureConditionSpinner() {
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
                 R.array.conditionOptions, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         condition.setAdapter(adapter);
@@ -92,7 +94,7 @@ public class FormCardActivity extends AppCompatActivity {
 
     private void populateRecommendedText() {
         ArrayAdapter<String> adapter;
-        adapter = new ArrayAdapter<>(this,
+        adapter = new ArrayAdapter<>(getContext(),
                 android.R.layout.simple_dropdown_item_1line,
                 recommendedNameArray);
         name.setAdapter(adapter);
@@ -100,36 +102,42 @@ public class FormCardActivity extends AppCompatActivity {
 
     private void configureNameText() {
         name.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+            private Timer timer = new Timer();
+            private final long DELAY = 1000;
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            public void afterTextChanged(final Editable s) {
                 if(!setSpinnerArray.isEmpty()){
                     setSpinnerArray.clear();
+                    cartasList.clear();
                     populateSpinner();
                 }
                 setSpinnerIsPopulated = false;
 
-                if(s.length() < 3){
-                    if(cartasRecommendedNameCall != null)
-                        cartasRecommendedNameCall.cancel();
-                    previousCardNameRequestSize = 0;
-                    return;
-                }
+                timer.cancel();
+                timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if(s.length() < 3){
+                            if(cartasRecommendedNameCall != null)
+                                cartasRecommendedNameCall.cancel();
+                            previousCardNameRequestSize = 0;
+                            return;
+                        }
 
-                Log.d("HMM", "onTextChanged: " + start + " " + before + " " + s.length() + " " + previousCardNameRequestSize);
+                        if(previousCardNameRequestSize == 0 || s.length() < previousCardNameRequestSize) {
+                            if(cartasRecommendedNameCall != null)
+                                cartasRecommendedNameCall.cancel();
+                            makeNomeCartasRequest(s);
+                        }
+                    }
+                }, DELAY);
 
-                if(previousCardNameRequestSize == 0 || s.length() < previousCardNameRequestSize) {
-                    if(cartasRecommendedNameCall != null)
-                        cartasRecommendedNameCall.cancel();
-                    makeNomeCartasRequest(s);
-                }
-            }
 
-            @Override
-            public void afterTextChanged(Editable s) {
             }
         });
 
@@ -141,54 +149,42 @@ public class FormCardActivity extends AppCompatActivity {
                 }
             }
         });
-
-        name.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String uri = "";
-                for(Carta aux : cartasList){
-                    if(aux.getName() == parent.getItemAtPosition(position))
-                        uri = aux.getImage_uris();
-                }
-                loadImage(uri);
-            }
-        });
-
     }
 
     private void loadImage(String uri) {
-        Glide.with(this).load(uri).into(image);
+        Glide.with(getContext()).load(uri).into(image);
     }
 
     private void makeNomeCartasRequest(CharSequence s) {
-        Toast.makeText(FormCardActivity.this,
-                "Searching...",
-                Toast.LENGTH_SHORT).show();
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(getContext(),
+                        "Searching...",
+                        Toast.LENGTH_SHORT).show();            }
+        });
         cartasRecommendedNameCall = new RetrofitConfig().getScryfallService().buscarCarta(s.toString());
         cartasRecommendedNameCall.enqueue(new Callback<CartasResponse>() {
             @Override
-            public void onResponse(Call<CartasResponse> call, Response<CartasResponse> response) {
+            public void onResponse(@NonNull Call<CartasResponse> call, @NonNull Response<CartasResponse> response) {
                 recommendedNameArray.clear();
-                cartasList.clear();
                 CartasResponse cartas = response.body();
 
                 int code = response.code();
                 if(code == 200){
                     for(Carta aux : cartas.getData()){
-                        cartasList.add(aux);
                         recommendedNameArray.add(aux.getName());
                     }
 
                     if(cartas.hasNext_page()){
-                        Toast.makeText(FormCardActivity.this,
+                        Toast.makeText(getContext(),
                                 "Query response is too long, type more to reduce the response",
-                                Toast.LENGTH_SHORT).show();
+                                Toast.LENGTH_LONG).show();
                     } else {
                         previousCardNameRequestSize = name.getText().length();
                     }
 
                 } else{
-                    Toast.makeText(FormCardActivity.this,
+                    Toast.makeText(getContext(),
                             "No cards found",
                             Toast.LENGTH_SHORT).show();
                 }
@@ -199,13 +195,13 @@ public class FormCardActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<CartasResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<CartasResponse> call, @NonNull Throwable t) {
                 recommendedNameArray.clear();
                 populateRecommendedText();
                 Log.d("HMM", "What happened: " + t.getMessage() + " / " + t.getLocalizedMessage());
                 if(t.getMessage().compareTo("timeout") == 0){
-                    Toast.makeText(FormCardActivity.this,
-                            "Timeout\nTry typing more things or retyping",
+                    Toast.makeText(getContext(),
+                            "Timeout\nTry typing more or retyping",
                             Toast.LENGTH_SHORT).show();
                 }
                 //do nothing
@@ -213,9 +209,14 @@ public class FormCardActivity extends AppCompatActivity {
         });
     }
 
+    @NonNull
+    private FormCardActivity getContext() {
+        return FormCardActivity.this;
+    }
+
     private void hideKeyboard(View v) {
         if(v != null){
-            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(this.INPUT_METHOD_SERVICE);
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(getContext().INPUT_METHOD_SERVICE);
             inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
         }
     }
@@ -223,6 +224,7 @@ public class FormCardActivity extends AppCompatActivity {
     private void configureSelectSetDropdown() {
 
         set.setOnTouchListener(new View.OnTouchListener() {
+            @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouch(View v, MotionEvent event) {
 
@@ -234,15 +236,17 @@ public class FormCardActivity extends AppCompatActivity {
                         return false;
 
                     if (name.getText().toString().isEmpty()) {
-                        Toast.makeText(FormCardActivity.this,
+                        Toast.makeText(getContext(),
                                 "Nenhuma carta especificada!",
                                 Toast.LENGTH_SHORT).show();
                         setSpinnerArray.clear();
+                        cartasList.clear();
                         populateSpinner();
                         return true;
                     }
 
                     setSpinnerArray.clear();
+                    cartasList.clear();
                     populateSpinner();
                     makeCartasTodosOsSetsRequest();
                 }
@@ -255,6 +259,8 @@ public class FormCardActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedSet = parent.getItemAtPosition(position).toString();
+                if(cartasList.size() > 0)
+                    loadImage(cartasList.get(position).getImage_uris());
             }
 
             @Override
@@ -274,16 +280,17 @@ public class FormCardActivity extends AppCompatActivity {
 
         call.enqueue(new Callback<CartasResponse>() {
             @Override
-            public void onResponse(Call<CartasResponse> call, Response<CartasResponse> response) {
+            public void onResponse(@NonNull Call<CartasResponse> call, @NonNull Response<CartasResponse> response) {
                 CartasResponse cartas = response.body();
 
                 int code = response.code();
                 if (code == 200) {
                     for(Carta aux : cartas.getData()){
                         setSpinnerArray.add(aux.getSet_name());
+                        cartasList.add(aux);
                     }
                 } else {
-                    Toast.makeText(FormCardActivity.this,
+                    Toast.makeText(getContext(),
                             "Carta não encontrada!",
                             Toast.LENGTH_LONG).show();
                 }
@@ -296,7 +303,7 @@ public class FormCardActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CartasResponse> call, Throwable t) {
-                Toast.makeText(FormCardActivity.this,
+                Toast.makeText(getContext(),
                         "Scryfall: Erro de comunicaçao!",
                         Toast.LENGTH_LONG).show();
                 comment.setText(t.getMessage());//REMOVER ESSA LINHA AO FINALIZAR PROJETO
@@ -308,7 +315,7 @@ public class FormCardActivity extends AppCompatActivity {
     @NonNull
     private ProgressDialog getProgressDialog() {
         ProgressDialog nDialog;
-        nDialog = new ProgressDialog(this);
+        nDialog = new ProgressDialog(getContext());
         nDialog.setMessage("Loading..");
         nDialog.setTitle("Get Data");
         nDialog.setIndeterminate(false);
@@ -323,12 +330,12 @@ public class FormCardActivity extends AppCompatActivity {
         if(setSpinnerArray.isEmpty()) {
             hint = new ArrayList<>();
             hint.add("Select set...");
-            spinnerArrayAdapter = new ArrayAdapter<>(this,
+            spinnerArrayAdapter = new ArrayAdapter<>(getContext(),
                     android.R.layout.simple_dropdown_item_1line,
                     hint);
         } else {
             spinnerArrayAdapter = new ArrayAdapter<>
-                    (this,
+                    (getContext(),
                             android.R.layout.simple_spinner_item,
                             setSpinnerArray);
         }
@@ -340,7 +347,7 @@ public class FormCardActivity extends AppCompatActivity {
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(FormCardActivity.this,
+                Toast.makeText(getContext(),
                         name.getText() + " - " + selectedSet + " - " + selectedCondition + " - " + comment.getText() + " - " + quantity.getText(),
                         Toast.LENGTH_SHORT).show();
             }
